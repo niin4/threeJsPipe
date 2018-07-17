@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>WebGL stuff</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" media="screen" href="main2.css" />
+    <script src="https://webglfundamentals.org/webgl/resources/webgl-utils.js"></script>
+    <script src="code.js"></script>
+</head>
+
+<body>
+
+    <canvas id="c">Your browser doesn't support HTML canvas</canvas>
+    <script type="x-shader/x-vertex" id="vertex-shader">
+        attribute vec2 a_position;
+        attribute vec2 a_texCoord;
+        
+        uniform vec2 u_resolution;
+        
+        varying vec2 v_texCoord;
+        
+        void main() {
+           // convert the rectangle from pixels to 0.0 to 1.0
+           vec2 zeroToOne = a_position / u_resolution;
+        
+           // convert from 0->1 to 0->2
+           vec2 zeroToTwo = zeroToOne * 2.0;
+        
+           // convert from 0->2 to -1->+1 (clipspace)
+           vec2 clipSpace = zeroToTwo - 1.0;
+        
+           gl_Position = vec4(clipSpace * vec2(1, -1), 0, 1);
+        
+           // pass the texCoord to the fragment shader
+           // The GPU will interpolate this value between points.
+           v_texCoord = a_texCoord;
+        }
+    </script>
+    <script type="x-shader/x-fragment" id="fragment-shader">
+        precision mediump float;
+
+        // our textures
+        uniform sampler2D u_image0;
+        uniform sampler2D u_image1;
+        uniform sampler2D u_image2;
+        
+        
+        // the texCoords passed in from the vertex shader.
+        varying vec2 v_texCoord;
+        
+        void main() {
+           vec3 c;
+           vec4 Ca = texture2D(u_image0, v_texCoord);
+           vec4 Cb = texture2D(u_image1, 1.2*v_texCoord);
+           float gray = dot(Cb.rgb, vec3(0.5, 0.587, 0.114));
+           float grayBear = dot(Ca.rgb, vec3(0.5, 0.587, 0.114));
+           vec4 color = vec4(1.0, 0.0, 0.0, 1.0);
+           vec4 color2 = vec4(1.0, 0.4, 0.2, 1.0);
+
+           vec4 colorful = grayBear * color;
+           vec4 colorfulBird = gray * color2;
+           c = vec4(colorful).rgb * Ca.a + vec4(gray).rgb * 0.6*Cb.a * (1.0 - Ca.a);  
+           gl_FragColor= vec4(c, (0.8*Ca.a + 0.8*Cb.a));
+           
+        }
+    </script>
+
+    <!--
+
+            // show background through where images clip
+    gl_FragColor= vec4(c, (1.0- v_texCoord * Ca.a * v_texCoord * Cb.a )); 
+
+    // show background through first image
+    gl_FragColor= vec4(c, (1.0- v_texCoord * Ca.a ));
+
+    // show images and bg
+    gl_FragColor= vec4(c, (Ca.a + Cb.a));
+
+    // show images faded to bg
+    gl_FragColor= vec4(c, (1.0 - v_texCoord));
+
+
+    // colorize and graysc ale stuff
+               vec3 c;
+           vec4 Ca = texture2D(u_image0, v_texCoord);
+           vec4 Cb = texture2D(u_image1, 1.2*v_texCoord);
+           float gray = dot(Cb.rgb, vec3(0.5, 0.587, 0.114));
+           float grayBear = dot(Ca.rgb, vec3(0.5, 0.587, 0.114));
+           vec4 color = vec4(1.0, 0.0, 0.0, 1.0);
+
+           vec4 colorful = grayBear * color;
+           c = vec4(colorful).rgb * Ca.a + vec4(gray).rgb * 0.5*Cb.a * (1.0 - Ca.a);  
+          gl_FragColor= vec4(c, (1.0 - v_texCoord));
+    -->
+</body>
+
+
+
+</html>
