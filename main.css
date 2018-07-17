@@ -29,6 +29,25 @@ body {
   font-size: 1.3em;
 }
 
+.controls {
+ position: absolute;
+ margin: 0 auto;
+ bottom: 2em;
+}
+
+.controls__item {
+  display: inline-block;
+}
+
+.controls__button {
+  text-decoration: none;
+  pointer-events: auto;
+  cursor: pointer;
+  color: #fff;
+  font-size: 1em;
+  margin: 0 0.5em;
+}
+
 canvas {
   position: relative;
   width: 100%;

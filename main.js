@@ -6,10 +6,10 @@ const NEAR = 1;
 const FAR = 100;
 
 const ANIMALS = [
-    { title: "Bear", desc: "Big and fluffy"},
-    { title: "Bird", desc: "Tweet"},
-    { title: "Marten", desc: "Rawr"},
-    { title: "Chipmunk", desc: "Small but dangerous"}
+    { title: "Bear", desc: "Big and fluffy", position: 1 },
+    { title: "Bird", desc: "Tweet", position: 50 },
+    { title: "Marten", desc: "Rawr", position: 70 },
+    { title: "Chipmunk", desc: "Small but dangerous", position: 100 }
 ]
 
 
@@ -26,12 +26,28 @@ var descContainer = document.querySelector("#desc");
 init()
 animate()
 
+function tweenCamera(position, target) {
+    console.log('hi')
+    console.log()
+    new TWEEN.Tween(camera.position).to({
+        x: target.x,
+        y: target.y,
+        z: target.z
+    }, 600)
+        .easing(TWEEN.Easing.Sinusoidal.InOut).start();
+    new TWEEN.Tween(controls.object).to({
+        x: target.x,
+        y: target.y,
+        z: target.z
+    }, 600)
+        .easing(TWEEN.Easing.Sinusoidal.InOut).start();
+}
+
 function checkItems() {
     var cameraPosition = controls.getPos();
     console.log(cameraPosition)
     finalItems.map((item, i) => {
         if (i !== currentImage) {
-            
             if (cameraPosition.z >= item.rangeMin && cameraPosition.z <= item.rangeMax) {
                 item.item.visible = true
                 currentImage = i
@@ -42,6 +58,13 @@ function checkItems() {
             }
         }
     })
+}
+
+function zoom(targetZ) {
+    var position = controls.getPos();
+    var target = new THREE.Vector3(position.x, position.y, parseInt(targetZ));
+    console.log(target)
+    tweenCamera(position, target)
 }
 
 function init() {
@@ -61,13 +84,13 @@ function init() {
             NEAR,
             FAR
         );
-    camera.position.z = 70;
+    camera.position.z = 1;
 
     controls = new THREE.OrbitControls(camera, renderer.domElement);
     //controls.addEventListener( 'change', render ); // call this only in static scenes (i.e., if there is no animation loop)
     controls.enableDamping = true; // an animation loop is required when either damping or auto-rotation are enabled
     controls.dampingFactor = 0.25;
-    controls.screenSpacePanning = false;
+    controls.screenSpacePanning = true;
     controls.minDistance = 10;
     controls.maxDistance = 100
     controls.maxPolarAngle = Math.PI / 2;
@@ -78,6 +101,28 @@ function init() {
     controls.minAzimuthAngle = -0.1;
 
     controls.addEventListener('change', render);
+
+
+
+    const controlsContainer = document.querySelector("#controls")
+    ANIMALS.map(animal => {
+        let div = document.createElement('div')
+        div.className = 'controls__item'
+        div.innerHTML = `<a class="controls__button" data-zoom=${animal.position}>	&diams;</a>`
+        controlsContainer.appendChild(div)
+    })
+
+    var links = document.querySelectorAll('.controls__button');
+    console.log(links)
+    for (item of links) {
+        item.addEventListener('click', function (event) {
+            console.log(event.target.dataset.zoom)
+            zoom(event.target.dataset.zoom)
+        })
+    }
+
+
+
 
     scene = new THREE.Scene();
 
@@ -105,22 +150,22 @@ function init() {
     const boxGeometry = new THREE.BoxGeometry(1, 1, 1);
     var items = []
 
-      // CHIPMUNK
-      var squirrelTexture = new THREE.TextureLoader().load("squirrel.png");
-      var squirrelColor = new THREE.Color("rgb(150, 200, 0)");
-  
-      const squirrelBox = new THREE.Mesh(boxGeometry, [null, null, null, null, new THREE.MeshLambertMaterial(
-          {
-              color: squirrelColor,
-              map: squirrelTexture,
-              opacity: 0.9,
-              transparent: true
-          }), null]
-      );
+    // CHIPMUNK
+    var squirrelTexture = new THREE.TextureLoader().load("squirrel.png");
+    var squirrelColor = new THREE.Color("rgb(150, 200, 0)");
+
+    const squirrelBox = new THREE.Mesh(boxGeometry, [null, null, null, null, new THREE.MeshLambertMaterial(
+        {
+            color: squirrelColor,
+            map: squirrelTexture,
+            opacity: 0.9,
+            transparent: true
+        }), null]
+    );
 
 
-   squirrelBox.position.set(-10 / ASPECT, 0, 80);
-   squirrelBox.scale.set(15, 15, 15);
+    squirrelBox.position.set(-10 / ASPECT, 0, 80);
+    squirrelBox.scale.set(15, 15, 15);
     scene.add(squirrelBox);
     items.push({ item: squirrelBox })
 
@@ -219,8 +264,9 @@ function render() {
 
 
 function animate() {
-    renderer.render(scene, camera);
+    TWEEN.update();
     requestAnimationFrame(animate);
+    renderer.render(scene, camera);
     controls.update();
 }
 
