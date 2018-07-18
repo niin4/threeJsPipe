@@ -13,7 +13,7 @@ var birdObject = new THREE.Object3D();
 const ANIMALS = [
     { title: "Bear", desc: "Big and fluffy", position: 10 },
     { title: "Bird", desc: "Tweet", position: 45 },
-    { title: "Marten", desc: "Rawr", position: 70 },
+    { title: "Fox", desc: "Rawr", position: 70 },
     { title: "Chipmunk", desc: "Small but dangerous", position: 100 }
 ]
 
@@ -127,18 +127,18 @@ function init() {
             child.material = material
         })
 
-         bearObject.scale.set(0.2,0.2,0.2)
-         bearObject.position.set(0,-1.8,1)
-         finalItems[0].model = bearObject
+        bearObject.scale.set(0.2, 0.2, 0.2)
+        bearObject.position.set(0, -1.8, 1)
+        finalItems[0].model = bearObject
 
-         birdObject.children[0].children.map(child => {
+        birdObject.children[0].children.map(child => {
             child.material = material
-         })
-         birdObject.scale.set(4,4,4)
-          birdObject.position.set(0,-3.2,30)
-          finalItems[1].model = birdObject
-       scene.add(bearObject);
-       scene.add(birdObject)
+        })
+        birdObject.scale.set(4, 4, 4)
+        birdObject.position.set(0, -3.2, 30)
+        finalItems[1].model = birdObject
+        scene.add(bearObject);
+        scene.add(birdObject)
 
     });
 
@@ -269,7 +269,7 @@ function init() {
     });
 
     scene.add(bearBox);
-    items.push({ item: bearBox})
+    items.push({ item: bearBox })
 
 
     itemDisplayRange = FAR / items.length
@@ -313,10 +313,14 @@ function animate() {
     TWEEN.update();
     requestAnimationFrame(animate);
     if (bear !== undefined) {
-        rotate(bear)
+        if (bearObject.visible) {
+            rotate(bear)
+        }
     }
     if (bird !== undefined) {
-        rotate(bird)
+        if (birdObject.visible) {
+            rotate(bird)
+        }
     }
     renderer.render(scene, camera);
     controls.update();
