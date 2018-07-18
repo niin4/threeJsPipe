@@ -2,19 +2,70 @@
 // Set some camera attributes.
 const VIEW_ANGLE = 45;
 const ASPECT = window.innerWidth / window.innerHeight;
+const WIDTH = 20;
+const HEIGHT = WIDTH / ASPECT
 const NEAR = 1;
 const FAR = 100;
 const SPEED = 0.01;
-var bear
-var bearObject = new THREE.Object3D();
-var bird
-var birdObject = new THREE.Object3D();
+const models = []
+let model
+let currentScroll = 0;
+let ticking = false;
+let lastScroll
+let updatedScroll
+
+const RIGHT = WIDTH / 8;
+const DOWN = -(HEIGHT / 8 / ASPECT)
+const LEFT = -WIDTH / 8;
+const UP = (HEIGHT / 8 / ASPECT)
+
+
 
 const ANIMALS = [
-    { title: "Bear", desc: "Big and fluffy", position: 10 },
-    { title: "Bird", desc: "Tweet", position: 45 },
-    { title: "Fox", desc: "Rawr", position: 70 },
-    { title: "Chipmunk", desc: "Small but dangerous", position: 100 }
+    {
+        posX: RIGHT,
+        posY: DOWN,
+        title: "Bear",
+        desc: "Big and fluffy",
+        position: 10,
+        location: 1,
+        picture: "bear.png",
+        color: new THREE.Color("rgb(200, 0, 200)"),
+        model: "./models/bear.dae"
+    },
+    {
+        posX: LEFT,
+        posY: UP,
+        title: "Bird",
+        desc: "Tweet",
+        position: 45,
+        location: 50,
+        picture: "bird.png",
+        model: "./models/bird.dae",
+        color: new THREE.Color("rgb(255, 0, 75)")
+    },
+    {
+        posX: RIGHT,
+        posY: DOWN,
+        title: "Fox",
+        desc: "Rawr",
+        picture: "marten.png",
+        color: new THREE.Color("rgb(0, 200, 200)"),
+        model: "./models/bear.dae",
+        position: 70,
+        location: 50
+    },
+    {
+        posX: LEFT,
+        posY: DOWN,
+        title: "Chipmunk",
+        desc: "Small but dangerous",
+        picture: "squirrel.png",
+        color: new THREE.Color("rgb(150, 200, 0)"),
+        model: "./models/bird.dae",
+        position: 100,
+        location: 50
+    }
 ]
 
 
@@ -31,45 +82,85 @@ var descContainer = document.querySelector("#desc");
 init()
 animate()
 
-function tweenCamera(position, target) {
-    console.log('hi')
-    console.log()
-    new TWEEN.Tween(camera.position).to({
+function setText(title, desc) {
+    headerContainer.innerHTML = title
+    descContainer.innerHTML = desc
+}
+
+function fadeObject(object, value) {
+    
+}
+
+function tweenCamera(object, target, id, display) {
+    console.log(object)
+    console.log(target)
+    new TWEEN.Tween(object.item.position).to({
         x: target.x,
         y: target.y,
         z: target.z
-    }, 800)
+    }, 400)
+        .onUpdate(function () {
+            if (display) {
+                finalItems[id].item.visible = true
+            } else {
+                finalItems[id].model.visible = false
+            }
+        })
+        .onComplete(function() {
+            if (!display) {
+                finalItems[id].item.visible = false
+            }
+            if (display) {
+                finalItems[id].model.visible = true
+                setText(ANIMALS[id].title, ANIMALS[id].desc)
+            }
+        })
         .easing(TWEEN.Easing.Sinusoidal.InOut).start();
-
 }
 
 function checkItems() {
-    var cameraPosition = controls.getPos();
-    console.log(cameraPosition)
+   /* var cameraPosition = controls.getPos();
     finalItems.map((item, i) => {
         if (i !== currentImage) {
-            if (cameraPosition.z >= item.rangeMin && cameraPosition.z <= item.rangeMax) {
-                if (item.model) {
-                    item.model.visible = true
-                }
-                item.item.visible = true
-                currentImage = i
-                headerContainer.innerHTML = ANIMALS[i].title
-                descContainer.innerHTML = ANIMALS[i].desc
-            } else {
-                if (item.model) {
-                    item.model.visible = false
-                }
-                item.item.visible = false
+
+            if (item.model) {
+                item.model.visible = true
             }
+            item.item.visible = true
+            currentImage = i
+            headerContainer.innerHTML = ANIMALS[i].title
+            descContainer.innerHTML = ANIMALS[i].desc
+        } else {
+            if (item.model) {
+                item.model.visible = false
+            }
+            item.item.visible = false
         }
-    })
+
+    })*/
 }
 
-function zoom(targetZ) {
+function zoom(objectId) {
+
+    console.log(objectId)
+    console.log(finalItems[objectId])
+    console.log(ANIMALS[currentScroll])
+
     var position = controls.getPos();
-    var target = new THREE.Vector3(position.x, position.y, parseInt(targetZ));
-    tweenCamera(position, target)
+    const backwards = new THREE.Vector3(ANIMALS[currentScroll].posX, ANIMALS[currentScroll].posY, -20);
+    const forwards = new THREE.Vector3(ANIMALS[currentScroll].posX, ANIMALS[currentScroll].posY, 40);
+    const present = new THREE.Vector3(ANIMALS[objectId].posX, ANIMALS[objectId].posY, 1);
+
+    if (objectId !== currentScroll && objectId <= finalItems.length-1 && objectId > currentScroll) {
+        tweenCamera(finalItems[currentScroll], backwards, currentScroll, false)
+    }
+    else if (objectId !== currentScroll && objectId >= 0 && objectId < currentScroll) {
+        tweenCamera(finalItems[currentScroll], forwards, currentScroll, false)
+    }
+
+    tweenCamera(finalItems[objectId], present, objectId, true)
+    currentScroll = objectId
+
 }
 
 function init() {
@@ -82,6 +173,7 @@ function init() {
     // and a scene
     renderer = new THREE.WebGLRenderer({ alpha: true });
     renderer.setClearColor(0x000000, 0);
+    
     camera =
         new THREE.PerspectiveCamera(
             VIEW_ANGLE,
@@ -89,11 +181,23 @@ function init() {
             NEAR,
             FAR
         );
-    camera.position.z = 1;
+        
+
+        /*
+    camera = new THREE.OrthographicCamera(
+        WIDTH / -2,
+        WIDTH / 2,
+        HEIGHT / 2,
+        HEIGHT / -2,
+        NEAR,
+        FAR
+    )*/
+    camera.position.z = 10;
 
     controls = new THREE.OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true; // an animation loop is required when either damping or auto-rotation are enabled
     controls.dampingFactor = 0.25;
+    controls.enableZoom = false;
     controls.screenSpacePanning = true;
     controls.minDistance = 10;
     controls.maxDistance = 100
@@ -111,35 +215,27 @@ function init() {
     // loadingManager
 
     var loadingManager = new THREE.LoadingManager(function () {
-        bearObject.add(bear)
-        birdObject.add(bird)
+        ANIMALS.map((a, i) => {
+            var object = new THREE.Object3D()
+            object.add(a.model)
+            let material = new THREE.MeshStandardMaterial({
+                color: 0x000000,
+                metalness: 0.1,
+                roughness: 0.5
+            })
 
-        console.log(birdObject)
-        console.log(bearObject)
+            object.children[0].children.map(child => {
+                child.material = material
+            })
+            object.scale.set(0.3, 0.3, 0.3)
+            if (i !== 0) {
+                object.visible = false
+            }
 
-        let material = new THREE.MeshStandardMaterial({
-            color: 0x000000,
-            metalness: 0.1,
-            roughness: 0.5
+            object.position.set(0, DOWN * 1.5, 1)
+            scene.add(object)
+            finalItems[i].model = object
         })
-
-        bearObject.children[0].children.map(child => {
-            child.material = material
-        })
-
-        bearObject.scale.set(0.2, 0.2, 0.2)
-        bearObject.position.set(0, -1.8, 1)
-        finalItems[0].model = bearObject
-
-        birdObject.children[0].children.map(child => {
-            child.material = material
-        })
-        birdObject.scale.set(4, 4, 4)
-        birdObject.position.set(0, -3.2, 30)
-        finalItems[1].model = birdObject
-        scene.add(bearObject);
-        scene.add(birdObject)
-
     });
 
     // collada
@@ -147,17 +243,17 @@ function init() {
 
     // Set buttons
     const controlsContainer = document.querySelector("#controls")
-    ANIMALS.map(animal => {
+    ANIMALS.map((animal, i) => {
         let div = document.createElement('div')
         div.className = 'controls__item'
-        div.innerHTML = `<a class="controls__button" data-zoom=${animal.position}>	&diams;</a>`
+        div.innerHTML = `<a class="controls__button" data-object=${i} data-zoom=${animal.position}>	&diams;</a>`
         controlsContainer.appendChild(div)
     })
 
     var links = document.querySelectorAll('.controls__button');
     for (item of links) {
         item.addEventListener('click', function (event) {
-            zoom(event.target.dataset.zoom)
+            zoom(parseInt(event.target.dataset.object))
         })
     }
 
@@ -184,109 +280,65 @@ function init() {
 
     // add to the scene
     scene.add(pointLight);
-    const boxGeometry = new THREE.BoxGeometry(1, 1, 1);
+    const boxGeometry = new THREE.BoxGeometry(1, 1, 0.00001);
     var items = []
 
-    // CHIPMUNK
-    var squirrelTexture = new THREE.TextureLoader().load("squirrel.png");
-    var squirrelColor = new THREE.Color("rgb(150, 200, 0)");
 
-    const squirrelBox = new THREE.Mesh(boxGeometry, [null, null, null, null, new THREE.MeshLambertMaterial(
-        {
-            color: squirrelColor,
-            map: squirrelTexture,
-            opacity: 0.9,
-            transparent: true
-        }), null]
-    );
+    function createAnimal(animal) {
+        // BEAR
+        var texture = new THREE.TextureLoader().load(animal.picture);
+
+        const box = new THREE.Mesh(boxGeometry, [null, null, null, null, new THREE.MeshLambertMaterial(
+            {
+                color: animal.color,
+                map: texture,
+                opacity: 0.9,
+                transparent: true
+            }), {
+                color: animal.color
+            }]
+        );
+
+        box.position.set(animal.posX, animal.posY, animal.location);
+
+        box.scale.set(5, 5, 5);
+
+        if (animal.model) {
+            loader.load(animal.model, function (collada) {
+                model = collada.scene;
+                animal.model = model
+            });
+        }
+
+        box.visible = false
+        scene.add(box);
+        items.push({ item: box })
+    }
 
 
-    squirrelBox.position.set(-10 / ASPECT, 0, 80);
-    squirrelBox.scale.set(15, 15, 15);
-    scene.add(squirrelBox);
-    items.push({ item: squirrelBox })
-
-
-    // MARTEN
-    var martenTexture = new THREE.TextureLoader().load("marten.png");
-    var martenColor = new THREE.Color("rgb(0, 200, 200)");
-
-    const martenBox = new THREE.Mesh(boxGeometry, [null, null, null, null, new THREE.MeshLambertMaterial(
-        {
-            color: martenColor,
-            map: martenTexture,
-            opacity: 0.9,
-            transparent: true
-        }), null]
-    );
-
-    martenBox.position.set(5 / ASPECT, 0, 50);
-    martenBox.scale.set(12, 12, 12);
-    scene.add(martenBox);
-    items.push({ item: martenBox })
-
-    // BIRD
-    var birdTexture = new THREE.TextureLoader().load("bird.png");
-    var birdColor = new THREE.Color("rgb(255, 0, 75)");
-
-    const birdBox = new THREE.Mesh(boxGeometry, [null, null, null, null, new THREE.MeshLambertMaterial(
-        {
-            color: birdColor,
-            map: birdTexture,
-            opacity: 0.9,
-            transparent: true
-        }), null]
-    );
-
-    birdBox.position.set(-5 / ASPECT, 2, 30);
-    birdBox.scale.set(6, 6, 6);
-
-    loader.load('./models/bird.dae', function (collada) {
-        bird = collada.scene;
-    });
-
-    scene.add(birdBox);
-    items.push({ item: birdBox })
-
-    // BEAR
-    var bearTexture = new THREE.TextureLoader().load("bear.png");
-    var bearColor = new THREE.Color("rgb(200, 0, 200)");
-
-    const bearBox = new THREE.Mesh(boxGeometry, [null, null, null, null, new THREE.MeshLambertMaterial(
-        {
-            color: bearColor,
-            map: bearTexture,
-            opacity: 0.9,
-            transparent: true
-        }), null]
-    );
-
-    bearBox.position.set(2.5, -0.5, 1);
-    bearBox.scale.set(5, 5, 5);
-
-    loader.load('./models/bear.dae', function (collada) {
-        bear = collada.scene;
-    });
-
-    scene.add(bearBox);
-    items.push({ item: bearBox })
-
+    ANIMALS.map(animal => createAnimal(animal))
 
     itemDisplayRange = FAR / items.length
 
 
-    items.reverse();
     items.map((item, i) => {
         if (i === 0) {
             finalItems.push({ ...item, rangeMin: 1, rangeMax: itemDisplayRange })
         } else {
-            console.log(finalItems[(i - 1)])
             finalItems.push({ ...item, rangeMin: finalItems[(i - 1)].rangeMax + 1, rangeMax: finalItems[(i - 1)].rangeMax + itemDisplayRange })
         }
     })
-    console.log(finalItems)
+
+    finalItems[0].item.visible = true
+    setText(ANIMALS[0].title, ANIMALS[0].desc)
 
     window.addEventListener('resize', onWindowResize, false);
+    window.addEventListener("wheel", function (e) {
+        if (!ticking) {
+            updatedScroll = e.deltaY;
+        }
+
+    })
     render()
 }
 
@@ -295,6 +347,26 @@ function onWindowResize() {
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
     render();
+}
+function updateScroll(scroll_pos) {
+    if (!ticking) {
+        ticking = true
+    if (scroll_pos > 0) {
+        console.log('current:' +currentScroll)
+        if (currentScroll !== ANIMALS.length - 1) {
+            console.log('scrolling down')
+            zoom(currentScroll+1)
+        }
+    } else {
+        if (currentScroll !== 0) {
+            console.log('scrolling up')
+            zoom(currentScroll-1)
+        }
+    }
+    lastScroll = updatedScroll
+}
+
+    setTimeout(function () { ticking = false }, 1000)
 }
 
 function rotate(animal) {
@@ -312,16 +384,19 @@ function render() {
 function animate() {
     TWEEN.update();
     requestAnimationFrame(animate);
-    if (bear !== undefined) {
-        if (bearObject.visible) {
-            rotate(bear)
+
+
+    if (finalItems[currentScroll]) {
+        if (finalItems[currentScroll].model) {
+            rotate(finalItems[currentScroll].model)
         }
     }
-    if (bird !== undefined) {
-        if (birdObject.visible) {
-            rotate(bird)
-        }
+
+
+    if (lastScroll !== updatedScroll && !ticking) {
+        updateScroll(updatedScroll)
     }
+
     renderer.render(scene, camera);
     controls.update();
 }
