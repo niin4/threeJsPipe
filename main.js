@@ -14,6 +14,10 @@ let ticking = false;
 let lastScroll
 let updatedScroll
 
+let touchStart
+let touchEnd
+let updatedTouch
+
 let RIGHT, LEFT, DOWN, UP, MODEL;
 if (ASPECT > 1) {
     RIGHT = WIDTH / 8
@@ -319,9 +323,30 @@ function init() {
         if (!ticking) {
             updatedScroll = e.deltaY;
         }
-
     })
+
+    container.addEventListener('touchstart', onTouchStart, false);
+    //someElement.addEventListener('touchmove', process_touchmove, false);
+    //someElement.addEventListener('touchcancel', process_touchcancel, false);
+    container.addEventListener('touchend', onTouchEnd, false);
+
     render()
+}
+
+function onTouchStart(e) {
+    console.log(e)
+    if (!ticking) {
+        touchStart = e.targetTouches[0].pageY
+    }
+}
+
+function onTouchEnd(e) {
+    console.log(e)
+    if (!ticking) {
+        touchEnd = e.changedTouches[0].pageY
+        updatedTouch = touchEnd - touchStart
+        console.log(updatedTouch)
+    }
 }
 
 function onWindowResize() {
@@ -329,6 +354,25 @@ function onWindowResize() {
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
     render();
+}
+
+function updateTouch () {
+    if (!ticking) {
+        ticking = true
+        if (updatedTouch < 0) {
+            if (currentScroll !== ANIMALS.length - 1) {
+                console.log('scrolling up')
+                zoom(currentScroll + 1)
+            }
+        } else {
+            if (currentScroll !== 0) {
+                console.log('scrolling down')
+                zoom(currentScroll - 1)
+            }
+        }
+        updatedTouch = 0
+    }
+    setTimeout(function () { ticking = false }, 500)
 }
 function updateScroll(scroll_pos) {
     if (!ticking) {
@@ -371,10 +415,16 @@ function animate() {
         }
     }
 
+    if (updatedTouch > 150 || updatedTouch < -150 && !ticking) {
+        console.log('hi')
+        updateTouch()
+    }
 
     if (lastScroll !== updatedScroll && !ticking) {
         updateScroll(updatedScroll)
     }
+
+
 
     renderer.render(scene, camera);
     controls.update();
