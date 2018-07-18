@@ -14,10 +14,24 @@ let ticking = false;
 let lastScroll
 let updatedScroll
 
-const RIGHT = WIDTH / 8;
-const DOWN = -(HEIGHT / 8 / ASPECT)
-const LEFT = -WIDTH / 8;
-const UP = (HEIGHT / 8 / ASPECT)
+let RIGHT, LEFT, DOWN, UP, MODEL;
+if (ASPECT > 1) {
+    RIGHT = WIDTH / 8
+    LEFT = -WIDTH / 8
+    DOWN = -(HEIGHT / 8 / ASPECT)
+    UP = (HEIGHT / 8 / ASPECT)
+    MODEL = -2.7/ ASPECT
+} else {
+
+    console.log(ASPECT)
+    console.log(HEIGHT)
+    RIGHT = 1
+    LEFT = -1
+    DOWN = -1/ASPECT/1.8
+    UP = 1/ASPECT/1.8
+    MODEL = -1.2 / ASPECT
+}
+
 
 
 
@@ -62,7 +76,7 @@ const ANIMALS = [
         desc: "Small but dangerous",
         picture: "squirrel.png",
         color: new THREE.Color("rgb(150, 200, 0)"),
-        model: "./models/bird.dae",
+        model: "./models/bear.dae",
         position: 100,
         location: 50
     }
@@ -87,10 +101,17 @@ function setText(title, desc) {
     descContainer.innerHTML = desc
 }
 
-function fadeObject(object, value) {
-    
+function webglAvailable() {
+    try {
+        var canvas = document.createElement("canvas");
+        return !!
+            window.WebGLRenderingContext && 
+            (canvas.getContext("webgl") || 
+                canvas.getContext("experimental-webgl"));
+    } catch(e) { 
+        return false;
+    } 
 }
-
 function tweenCamera(object, target, id, display) {
     console.log(object)
     console.log(target)
@@ -106,7 +127,7 @@ function tweenCamera(object, target, id, display) {
                 finalItems[id].model.visible = false
             }
         })
-        .onComplete(function() {
+        .onComplete(function () {
             if (!display) {
                 finalItems[id].item.visible = false
             }
@@ -118,40 +139,13 @@ function tweenCamera(object, target, id, display) {
         .easing(TWEEN.Easing.Sinusoidal.InOut).start();
 }
 
-function checkItems() {
-   /* var cameraPosition = controls.getPos();
-    finalItems.map((item, i) => {
-        if (i !== currentImage) {
-
-            if (item.model) {
-                item.model.visible = true
-            }
-            item.item.visible = true
-            currentImage = i
-            headerContainer.innerHTML = ANIMALS[i].title
-            descContainer.innerHTML = ANIMALS[i].desc
-        } else {
-            if (item.model) {
-                item.model.visible = false
-            }
-            item.item.visible = false
-        }
-
-    })*/
-}
-
 function zoom(objectId) {
 
-    console.log(objectId)
-    console.log(finalItems[objectId])
-    console.log(ANIMALS[currentScroll])
-
-    var position = controls.getPos();
     const backwards = new THREE.Vector3(ANIMALS[currentScroll].posX, ANIMALS[currentScroll].posY, -20);
     const forwards = new THREE.Vector3(ANIMALS[currentScroll].posX, ANIMALS[currentScroll].posY, 40);
     const present = new THREE.Vector3(ANIMALS[objectId].posX, ANIMALS[objectId].posY, 1);
 
-    if (objectId !== currentScroll && objectId <= finalItems.length-1 && objectId > currentScroll) {
+    if (objectId !== currentScroll && objectId <= finalItems.length - 1 && objectId > currentScroll) {
         tweenCamera(finalItems[currentScroll], backwards, currentScroll, false)
     }
     else if (objectId !== currentScroll && objectId >= 0 && objectId < currentScroll) {
@@ -171,9 +165,9 @@ function init() {
 
     // Create a WebGL renderer, camera
     // and a scene
-    renderer = new THREE.WebGLRenderer({ alpha: true });
+    renderer = webglAvailable() ? new THREE.WebGLRenderer({ alpha: true }) : new THREE.CanvasRenderer({ alpha: true });
     renderer.setClearColor(0x000000, 0);
-    
+
     camera =
         new THREE.PerspectiveCamera(
             VIEW_ANGLE,
@@ -181,17 +175,7 @@ function init() {
             NEAR,
             FAR
         );
-        
 
-        /*
-    camera = new THREE.OrthographicCamera(
-        WIDTH / -2,
-        WIDTH / 2,
-        HEIGHT / 2,
-        HEIGHT / -2,
-        NEAR,
-        FAR
-    )*/
     camera.position.z = 10;
 
     controls = new THREE.OrbitControls(camera, renderer.domElement);
@@ -203,14 +187,12 @@ function init() {
     controls.maxDistance = 100
     controls.maxPolarAngle = Math.PI / 2;
     controls.minPolarAngle = 1.5;
-    controls.zoomSpeed = 0.2;
+    controls.zoomSpeed = 0.4;
     controls.rotateSpeed = 0.1;
     controls.maxAzimuthAngle = 0.1;
     controls.minAzimuthAngle = -0.1;
 
     controls.addEventListener('change', render);
-
-    clock = new THREE.Clock();
 
     // loadingManager
 
@@ -227,12 +209,12 @@ function init() {
             object.children[0].children.map(child => {
                 child.material = material
             })
-            object.scale.set(0.3, 0.3, 0.3)
+            object.scale.set(0.2, 0.2, 0.2)
             if (i !== 0) {
                 object.visible = false
             }
 
-            object.position.set(0, DOWN * 1.5, 1)
+            object.position.set(0, MODEL, 3)
             scene.add(object)
             finalItems[i].model = object
         })
@@ -301,7 +283,7 @@ function init() {
 
         box.position.set(animal.posX, animal.posY, animal.location);
 
-        box.scale.set(5, 5, 5);
+        box.scale.set(6, 6, 6);
 
         if (animal.model) {
             loader.load(animal.model, function (collada) {
@@ -351,20 +333,20 @@ function onWindowResize() {
 function updateScroll(scroll_pos) {
     if (!ticking) {
         ticking = true
-    if (scroll_pos > 0) {
-        console.log('current:' +currentScroll)
-        if (currentScroll !== ANIMALS.length - 1) {
-            console.log('scrolling down')
-            zoom(currentScroll+1)
+        if (scroll_pos > 0) {
+            console.log('current:' + currentScroll)
+            if (currentScroll !== ANIMALS.length - 1) {
+                console.log('scrolling down')
+                zoom(currentScroll + 1)
+            }
+        } else {
+            if (currentScroll !== 0) {
+                console.log('scrolling up')
+                zoom(currentScroll - 1)
+            }
         }
-    } else {
-        if (currentScroll !== 0) {
-            console.log('scrolling up')
-            zoom(currentScroll-1)
-        }
+        lastScroll = updatedScroll
     }
-    lastScroll = updatedScroll
-}
 
     setTimeout(function () { ticking = false }, 1000)
 }
@@ -374,9 +356,6 @@ function rotate(animal) {
 }
 
 function render() {
-    setTimeout(() => {
-        checkItems()
-    }, 100);
     renderer.render(scene, camera);
 }
 
