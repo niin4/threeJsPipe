@@ -4,16 +4,21 @@ const VIEW_ANGLE = 45;
 const ASPECT = window.innerWidth / window.innerHeight;
 const NEAR = 1;
 const FAR = 100;
+const SPEED = 0.01;
+var bear
+var bearObject = new THREE.Object3D();
+var bird
+var birdObject = new THREE.Object3D();
 
 const ANIMALS = [
-    { title: "Bear", desc: "Big and fluffy", position: 1 },
-    { title: "Bird", desc: "Tweet", position: 50 },
+    { title: "Bear", desc: "Big and fluffy", position: 10 },
+    { title: "Bird", desc: "Tweet", position: 45 },
     { title: "Marten", desc: "Rawr", position: 70 },
     { title: "Chipmunk", desc: "Small but dangerous", position: 100 }
 ]
 
 
-var camera, controls, scene, renderer, stats;
+var camera, clock, controls, scene, renderer, stats;
 var finalItems = []
 
 let itemDisplayRange
@@ -33,14 +38,9 @@ function tweenCamera(position, target) {
         x: target.x,
         y: target.y,
         z: target.z
-    }, 600)
+    }, 800)
         .easing(TWEEN.Easing.Sinusoidal.InOut).start();
-    new TWEEN.Tween(controls.object).to({
-        x: target.x,
-        y: target.y,
-        z: target.z
-    }, 600)
-        .easing(TWEEN.Easing.Sinusoidal.InOut).start();
+
 }
 
 function checkItems() {
@@ -49,11 +49,17 @@ function checkItems() {
     finalItems.map((item, i) => {
         if (i !== currentImage) {
             if (cameraPosition.z >= item.rangeMin && cameraPosition.z <= item.rangeMax) {
+                if (item.model) {
+                    item.model.visible = true
+                }
                 item.item.visible = true
                 currentImage = i
                 headerContainer.innerHTML = ANIMALS[i].title
                 descContainer.innerHTML = ANIMALS[i].desc
             } else {
+                if (item.model) {
+                    item.model.visible = false
+                }
                 item.item.visible = false
             }
         }
@@ -63,7 +69,6 @@ function checkItems() {
 function zoom(targetZ) {
     var position = controls.getPos();
     var target = new THREE.Vector3(position.x, position.y, parseInt(targetZ));
-    console.log(target)
     tweenCamera(position, target)
 }
 
@@ -87,7 +92,6 @@ function init() {
     camera.position.z = 1;
 
     controls = new THREE.OrbitControls(camera, renderer.domElement);
-    //controls.addEventListener( 'change', render ); // call this only in static scenes (i.e., if there is no animation loop)
     controls.enableDamping = true; // an animation loop is required when either damping or auto-rotation are enabled
     controls.dampingFactor = 0.25;
     controls.screenSpacePanning = true;
@@ -102,8 +106,46 @@ function init() {
 
     controls.addEventListener('change', render);
 
+    clock = new THREE.Clock();
 
+    // loadingManager
 
+    var loadingManager = new THREE.LoadingManager(function () {
+        bearObject.add(bear)
+        birdObject.add(bird)
+
+        console.log(birdObject)
+        console.log(bearObject)
+
+        let material = new THREE.MeshStandardMaterial({
+            color: 0x000000,
+            metalness: 0.1,
+            roughness: 0.5
+        })
+
+        bearObject.children[0].children.map(child => {
+            child.material = material
+        })
+
+         bearObject.scale.set(0.2,0.2,0.2)
+         bearObject.position.set(0,-1.8,1)
+         finalItems[0].model = bearObject
+
+         birdObject.children[0].children.map(child => {
+            child.material = material
+         })
+         birdObject.scale.set(4,4,4)
+          birdObject.position.set(0,-3.2,30)
+          finalItems[1].model = birdObject
+       scene.add(bearObject);
+       scene.add(birdObject)
+
+    });
+
+    // collada
+    var loader = new THREE.ColladaLoader(loadingManager);
+
+    // Set buttons
     const controlsContainer = document.querySelector("#controls")
     ANIMALS.map(animal => {
         let div = document.createElement('div')
@@ -113,16 +155,11 @@ function init() {
     })
 
     var links = document.querySelectorAll('.controls__button');
-    console.log(links)
     for (item of links) {
         item.addEventListener('click', function (event) {
-            console.log(event.target.dataset.zoom)
             zoom(event.target.dataset.zoom)
         })
     }
-
-
-
 
     scene = new THREE.Scene();
 
@@ -169,9 +206,6 @@ function init() {
     scene.add(squirrelBox);
     items.push({ item: squirrelBox })
 
-    // BIRD
-    var birdTexture = new THREE.TextureLoader().load("bird.png");
-    var birdColor = new THREE.Color("rgb(255, 0, 75)");
 
     // MARTEN
     var martenTexture = new THREE.TextureLoader().load("marten.png");
@@ -204,8 +238,13 @@ function init() {
         }), null]
     );
 
-    birdBox.position.set(-9 / ASPECT, 4, 15);
-    birdBox.scale.set(15, 15, 15);
+    birdBox.position.set(-5 / ASPECT, 2, 30);
+    birdBox.scale.set(6, 6, 6);
+
+    loader.load('./models/bird.dae', function (collada) {
+        bird = collada.scene;
+    });
+
     scene.add(birdBox);
     items.push({ item: birdBox })
 
@@ -222,11 +261,15 @@ function init() {
         }), null]
     );
 
-    bearBox.position.set(2.5 / ASPECT, -0.5, 1);
+    bearBox.position.set(2.5, -0.5, 1);
     bearBox.scale.set(5, 5, 5);
 
+    loader.load('./models/bear.dae', function (collada) {
+        bear = collada.scene;
+    });
+
     scene.add(bearBox);
-    items.push({ item: bearBox })
+    items.push({ item: bearBox})
 
 
     itemDisplayRange = FAR / items.length
@@ -254,11 +297,14 @@ function onWindowResize() {
     render();
 }
 
+function rotate(animal) {
+    animal.rotation.y += SPEED * 2;
+}
 
 function render() {
     setTimeout(() => {
         checkItems()
-    }, 200);
+    }, 100);
     renderer.render(scene, camera);
 }
 
@@ -266,6 +312,12 @@ function render() {
 function animate() {
     TWEEN.update();
     requestAnimationFrame(animate);
+    if (bear !== undefined) {
+        rotate(bear)
+    }
+    if (bird !== undefined) {
+        rotate(bird)
+    }
     renderer.render(scene, camera);
     controls.update();
 }
