@@ -6,19 +6,28 @@ const WIDTH = 20;
 const HEIGHT = WIDTH / ASPECT
 const NEAR = 1;
 const FAR = 100;
+
+// animation speed
 const SPEED = 0.01;
 const models = []
 let model
+
+// current page index
 let currentScroll = 0;
+
+// "timer" for scroll and touch events
 let ticking = false;
+
+// scroll and touch
 let lastScroll
 let updatedScroll
-
 let touchStart
 let touchEnd
 let updatedTouch
 
+// animal image position
 let RIGHT, LEFT, DOWN, UP, MODEL;
+
 if (ASPECT > 1) {
     RIGHT = WIDTH / 8
     LEFT = -WIDTH / 8
@@ -26,9 +35,6 @@ if (ASPECT > 1) {
     UP = (HEIGHT / 8 / ASPECT)
     MODEL = -2.7/ ASPECT
 } else {
-
-    console.log(ASPECT)
-    console.log(HEIGHT)
     RIGHT = 1
     LEFT = -1
     DOWN = -1/ASPECT/1.8
@@ -36,69 +42,55 @@ if (ASPECT > 1) {
     MODEL = -1.2 / ASPECT
 }
 
+let  camera, controls, scene, renderer;
+const finalItems = []
 
+const headerContainer = document.querySelector("#title");
+const descContainer = document.querySelector("#desc");
 
-
+// page data
 const ANIMALS = [
     {
+        location: 1,
         posX: RIGHT,
         posY: DOWN,
         title: "Bear",
         desc: "Big and fluffy",
-        position: 10,
-        location: 1,
         picture: "bear.png",
         color: new THREE.Color("rgb(200, 0, 200)"),
         model: "./models/bear.dae"
     },
     {
+        location: 40,
         posX: LEFT,
         posY: UP,
         title: "Bird",
         desc: "Tweet",
-        position: 45,
-        location: 50,
         picture: "bird.png",
         model: "./models/bird.dae",
         color: new THREE.Color("rgb(255, 0, 75)")
     },
     {
+        location: 40,
         posX: RIGHT,
         posY: DOWN,
         title: "Fox",
         desc: "Rawr",
         picture: "marten.png",
         color: new THREE.Color("rgb(0, 200, 200)"),
-        model: "./models/bear.dae",
-        position: 70,
-        location: 50
+        model: "./models/bear.dae"
     },
     {
+        location: 40,
         posX: LEFT,
         posY: DOWN,
         title: "Chipmunk",
         desc: "Small but dangerous",
         picture: "squirrel.png",
         color: new THREE.Color("rgb(150, 200, 0)"),
-        model: "./models/bear.dae",
-        position: 100,
-        location: 50
+        model: "./models/bear.dae"
     }
 ]
-
-
-var camera, clock, controls, scene, renderer, stats;
-var finalItems = []
-
-let itemDisplayRange
-
-let currentImage
-
-var headerContainer = document.querySelector("#title");
-var descContainer = document.querySelector("#desc");
-
-init()
-animate()
 
 function setText(title, desc) {
     headerContainer.innerHTML = title
@@ -110,15 +102,14 @@ function webglAvailable() {
         var canvas = document.createElement("canvas");
         return !!
             window.WebGLRenderingContext && 
-            (canvas.getContext("webgl") || 
+            (canvas.getContext("webgl2") || canvas.getContext("webgl") || 
                 canvas.getContext("experimental-webgl"));
     } catch(e) { 
         return false;
     } 
 }
-function tweenCamera(object, target, id, display) {
-    console.log(object)
-    console.log(target)
+
+function tweenObject(object, target, id, display) {
     new TWEEN.Tween(object.item.position).to({
         x: target.x,
         y: target.y,
@@ -150,13 +141,12 @@ function zoom(objectId) {
     const present = new THREE.Vector3(ANIMALS[objectId].posX, ANIMALS[objectId].posY, 1);
 
     if (objectId !== currentScroll && objectId <= finalItems.length - 1 && objectId > currentScroll) {
-        tweenCamera(finalItems[currentScroll], backwards, currentScroll, false)
+        tweenObject(finalItems[currentScroll], backwards, currentScroll, false)
     }
     else if (objectId !== currentScroll && objectId >= 0 && objectId < currentScroll) {
-        tweenCamera(finalItems[currentScroll], forwards, currentScroll, false)
+        tweenObject(finalItems[currentScroll], forwards, currentScroll, false)
     }
-
-    tweenCamera(finalItems[objectId], present, objectId, true)
+    tweenObject(finalItems[objectId], present, objectId, true)
     currentScroll = objectId
 
 }
@@ -180,6 +170,7 @@ function init() {
             FAR
         );
 
+    // starting position for camera
     camera.position.z = 10;
 
     controls = new THREE.OrbitControls(camera, renderer.domElement);
@@ -198,8 +189,7 @@ function init() {
 
     controls.addEventListener('change', render);
 
-    // loadingManager
-
+    // LOADING 3D
     var loadingManager = new THREE.LoadingManager(function () {
         ANIMALS.map((a, i) => {
             var object = new THREE.Object3D()
@@ -224,10 +214,9 @@ function init() {
         })
     });
 
-    // collada
     var loader = new THREE.ColladaLoader(loadingManager);
 
-    // Set buttons
+    // CONTROL BUTTONS
     const controlsContainer = document.querySelector("#controls")
     ANIMALS.map((animal, i) => {
         let div = document.createElement('div')
@@ -243,29 +232,24 @@ function init() {
         })
     }
 
+
+
+    // INITIALIZE SCENE
     scene = new THREE.Scene();
-
-    // Add the camera to the scene.
     scene.add(camera);
-
-    // Start the renderer.
     renderer.setSize(window.innerWidth, window.innerHeight);
-
-    // Attach the renderer-supplied
-    // DOM element.
     container.appendChild(renderer.domElement);
 
     // LIGHT
     const pointLight =
         new THREE.PointLight(0xFFFFFF);
-
-    // set its position
     pointLight.position.x = 10;
     pointLight.position.y = 50;
     pointLight.position.z = 130;
-
-    // add to the scene
     scene.add(pointLight);
+
+
+    // CREATE ANIMALS
     const boxGeometry = new THREE.BoxGeometry(1, 1, 0.00001);
     var items = []
 
@@ -286,8 +270,7 @@ function init() {
         );
 
         box.position.set(animal.posX, animal.posY, animal.location);
-
-        box.scale.set(6, 6, 6);
+        box.scale.set(6, 6, 0.01);
 
         if (animal.model) {
             loader.load(animal.model, function (collada) {
@@ -301,51 +284,45 @@ function init() {
         items.push({ item: box })
     }
 
-
     ANIMALS.map(animal => createAnimal(animal))
 
-    itemDisplayRange = FAR / items.length
 
-
+    // INIT FINAL ITEMS ARRAY, ADD EXTRA INFO IF NEEDED
     items.map((item, i) => {
         if (i === 0) {
-            finalItems.push({ ...item, rangeMin: 1, rangeMax: itemDisplayRange })
+            finalItems.push({ ...item})
         } else {
-            finalItems.push({ ...item, rangeMin: finalItems[(i - 1)].rangeMax + 1, rangeMax: finalItems[(i - 1)].rangeMax + itemDisplayRange })
+            finalItems.push({ ...item})
         }
     })
 
     finalItems[0].item.visible = true
     setText(ANIMALS[0].title, ANIMALS[0].desc)
 
+
+    // ATTACH EVENT LISTENERS
     window.addEventListener('resize', onWindowResize, false);
     window.addEventListener("wheel", function (e) {
         if (!ticking) {
             updatedScroll = e.deltaY;
         }
     })
-
     container.addEventListener('touchstart', onTouchStart, false);
-    //someElement.addEventListener('touchmove', process_touchmove, false);
-    //someElement.addEventListener('touchcancel', process_touchcancel, false);
     container.addEventListener('touchend', onTouchEnd, false);
 
     render()
 }
 
 function onTouchStart(e) {
-    console.log(e)
     if (!ticking) {
         touchStart = e.targetTouches[0].pageY
     }
 }
 
 function onTouchEnd(e) {
-    console.log(e)
     if (!ticking) {
         touchEnd = e.changedTouches[0].pageY
         updatedTouch = touchEnd - touchStart
-        console.log(updatedTouch)
     }
 }
 
@@ -408,26 +385,28 @@ function animate() {
     TWEEN.update();
     requestAnimationFrame(animate);
 
-
+    // rotate 3d model if current item has it
     if (finalItems[currentScroll]) {
         if (finalItems[currentScroll].model) {
             rotate(finalItems[currentScroll].model)
         }
     }
 
+    // check if user did long touch
     if (updatedTouch > 150 || updatedTouch < -150 && !ticking) {
         console.log('hi')
         updateTouch()
     }
 
+    // check for scroll
     if (lastScroll !== updatedScroll && !ticking) {
         updateScroll(updatedScroll)
     }
-
-
 
     renderer.render(scene, camera);
     controls.update();
 }
 
-// Schedule the first frame.
+
+init()
+animate()
