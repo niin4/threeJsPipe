@@ -1,22 +1,23 @@
-
 // Set some camera attributes.
-const VIEW_ANGLE = 45;
-const ASPECT = window.innerWidth / window.innerHeight;
-const WIDTH = 20;
+const VIEW_ANGLE = 45
+const ASPECT = window.innerWidth / window.innerHeight
+const WIDTH = 20
 const HEIGHT = WIDTH / ASPECT
-const NEAR = 1;
-const FAR = 100;
+const NEAR = 1
+const FAR = 100
+const CAMERA_START = 10
 
 // animation speed
-const SPEED = 0.01;
-const models = []
+const SPEED = 0.02
+
+//3d model placeholder for collada loader
 let model
 
 // current page index
-let currentScroll = 0;
+let currentScroll = 0
 
 // "timer" for scroll and touch events
-let ticking = false;
+let ticking = false
 
 // scroll and touch
 let lastScroll
@@ -26,27 +27,30 @@ let touchEnd
 let updatedTouch
 
 // animal image position
-let RIGHT, LEFT, DOWN, UP, MODEL;
+let RIGHT, LEFT, DOWN, UP, MODEL
 
 if (ASPECT > 1) {
     RIGHT = WIDTH / 8
     LEFT = -WIDTH / 8
     DOWN = -(HEIGHT / 8 / ASPECT)
     UP = (HEIGHT / 8 / ASPECT)
-    MODEL = -2.7/ ASPECT
+    MODEL = -2.7 / ASPECT
 } else {
     RIGHT = 1
     LEFT = -1
-    DOWN = -1/ASPECT/1.8
-    UP = 1/ASPECT/1.8
+    DOWN = -1 / ASPECT / 1.8
+    UP = 1 / ASPECT / 1.8
     MODEL = -1.2 / ASPECT
 }
 
-let  camera, controls, scene, renderer;
+let camera, controls, scene, renderer
+
+// array for 3d items and models
 const finalItems = []
 
-const headerContainer = document.querySelector("#title");
-const descContainer = document.querySelector("#desc");
+//containers for text
+const headerContainer = document.querySelector("#title")
+const descContainer = document.querySelector("#desc")
 
 // page data
 const ANIMALS = [
@@ -67,8 +71,8 @@ const ANIMALS = [
         title: "Bird",
         desc: "Tweet",
         picture: "bird.png",
-        model: "./models/bird.dae",
-        color: new THREE.Color("rgb(255, 0, 75)")
+        color: new THREE.Color("rgb(255, 0, 75)"),
+        model: "./models/bird.dae"
     },
     {
         location: 40,
@@ -92,37 +96,38 @@ const ANIMALS = [
     }
 ]
 
-function setText(title, desc) {
+const setText = (title, desc) => {
     headerContainer.innerHTML = title
     descContainer.innerHTML = desc
 }
 
-function webglAvailable() {
+// check if webgl or webgl2 available, otherwise use canvas renderer
+const webglAvailable = () => {
     try {
-        var canvas = document.createElement("canvas");
+        const canvas = document.createElement("canvas");
         return !!
-            window.WebGLRenderingContext && 
-            (canvas.getContext("webgl2") || canvas.getContext("webgl") || 
+            window.WebGLRenderingContext &&
+            (canvas.getContext("webgl2") || canvas.getContext("webgl") ||
                 canvas.getContext("experimental-webgl"));
-    } catch(e) { 
-        return false;
-    } 
+    } catch (e) {
+        return false
+    }
 }
 
-function tweenObject(object, target, id, display) {
+const tweenObject = (object, target, id, display) => {
     new TWEEN.Tween(object.item.position).to({
         x: target.x,
         y: target.y,
         z: target.z
     }, 400)
-        .onUpdate(function () {
+        .onUpdate(() => {
             if (display) {
                 finalItems[id].item.visible = true
             } else {
                 finalItems[id].model.visible = false
             }
         })
-        .onComplete(function () {
+        .onComplete(() => {
             if (!display) {
                 finalItems[id].item.visible = false
             }
@@ -131,14 +136,14 @@ function tweenObject(object, target, id, display) {
                 setText(ANIMALS[id].title, ANIMALS[id].desc)
             }
         })
-        .easing(TWEEN.Easing.Sinusoidal.InOut).start();
+        .easing(TWEEN.Easing.Sinusoidal.InOut).start()
 }
 
-function zoom(objectId) {
+const zoom = (objectId) => {
 
-    const backwards = new THREE.Vector3(ANIMALS[currentScroll].posX, ANIMALS[currentScroll].posY, -20);
-    const forwards = new THREE.Vector3(ANIMALS[currentScroll].posX, ANIMALS[currentScroll].posY, 40);
-    const present = new THREE.Vector3(ANIMALS[objectId].posX, ANIMALS[objectId].posY, 1);
+    const backwards = new THREE.Vector3(ANIMALS[currentScroll].posX, ANIMALS[currentScroll].posY, -20)
+    const forwards = new THREE.Vector3(ANIMALS[currentScroll].posX, ANIMALS[currentScroll].posY, 40)
+    const present = new THREE.Vector3(ANIMALS[objectId].posX, ANIMALS[objectId].posY, 1)
 
     if (objectId !== currentScroll && objectId <= finalItems.length - 1 && objectId > currentScroll) {
         tweenObject(finalItems[currentScroll], backwards, currentScroll, false)
@@ -151,16 +156,15 @@ function zoom(objectId) {
 
 }
 
-function init() {
-
+const init = () => {
     // Get the DOM element to attach to
     const container =
         document.querySelector('#container');
 
     // Create a WebGL renderer, camera
     // and a scene
-    renderer = webglAvailable() ? new THREE.WebGLRenderer({ alpha: true }) : new THREE.CanvasRenderer({ alpha: true });
-    renderer.setClearColor(0x000000, 0);
+    renderer = webglAvailable() ? new THREE.WebGLRenderer({ alpha: true }) : new THREE.CanvasRenderer({ alpha: true })
+    renderer.setClearColor(0x000000, 0)
 
     camera =
         new THREE.PerspectiveCamera(
@@ -171,28 +175,28 @@ function init() {
         );
 
     // starting position for camera
-    camera.position.z = 10;
+    camera.position.z = CAMERA_START
 
-    controls = new THREE.OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true; // an animation loop is required when either damping or auto-rotation are enabled
-    controls.dampingFactor = 0.25;
+    controls = new THREE.OrbitControls(camera, renderer.domElement)
+    controls.enableDamping = true
+    controls.dampingFactor = 0.25
     controls.enableZoom = false;
-    controls.screenSpacePanning = true;
-    controls.minDistance = 10;
-    controls.maxDistance = 100
-    controls.maxPolarAngle = Math.PI / 2;
-    controls.minPolarAngle = 1.5;
-    controls.zoomSpeed = 0.4;
-    controls.rotateSpeed = 0.1;
-    controls.maxAzimuthAngle = 0.1;
-    controls.minAzimuthAngle = -0.1;
+    controls.screenSpacePanning = true
+    controls.minDistance =  CAMERA_START
+    controls.maxDistance = FAR
+    controls.maxPolarAngle = Math.PI / 2
+    controls.minPolarAngle = 1.5
+    controls.zoomSpeed = 0.4
+    controls.rotateSpeed = 0.1
+    controls.maxAzimuthAngle = 0.1
+    controls.minAzimuthAngle = -0.1
 
-    controls.addEventListener('change', render);
+    controls.addEventListener('change', render)
 
     // LOADING 3D
-    var loadingManager = new THREE.LoadingManager(function () {
+    const loadingManager = new THREE.LoadingManager(() => {
         ANIMALS.map((a, i) => {
-            var object = new THREE.Object3D()
+            const object = new THREE.Object3D()
             object.add(a.model)
             let material = new THREE.MeshStandardMaterial({
                 color: 0x000000,
@@ -212,22 +216,22 @@ function init() {
             scene.add(object)
             finalItems[i].model = object
         })
-    });
+    })
 
-    var loader = new THREE.ColladaLoader(loadingManager);
+    const loader = new THREE.ColladaLoader(loadingManager)
 
     // CONTROL BUTTONS
     const controlsContainer = document.querySelector("#controls")
     ANIMALS.map((animal, i) => {
         let div = document.createElement('div')
         div.className = 'controls__item'
-        div.innerHTML = `<a class="controls__button" data-object=${i} data-zoom=${animal.position}>	&diams;</a>`
+        div.innerHTML = `<a class="controls__button" data-object=${i}>&diams;</a>`
         controlsContainer.appendChild(div)
     })
 
-    var links = document.querySelectorAll('.controls__button');
+    const links = document.querySelectorAll('.controls__button')
     for (item of links) {
-        item.addEventListener('click', function (event) {
+        item.addEventListener('click', event => {
             zoom(parseInt(event.target.dataset.object))
         })
     }
@@ -235,28 +239,23 @@ function init() {
 
 
     // INITIALIZE SCENE
-    scene = new THREE.Scene();
-    scene.add(camera);
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    container.appendChild(renderer.domElement);
+    scene = new THREE.Scene()
+    scene.add(camera)
+    renderer.setSize(window.innerWidth, window.innerHeight)
+    container.appendChild(renderer.domElement)
 
     // LIGHT
-    const pointLight =
-        new THREE.PointLight(0xFFFFFF);
-    pointLight.position.x = 10;
-    pointLight.position.y = 50;
-    pointLight.position.z = 130;
-    scene.add(pointLight);
-
+    const pointLight = new THREE.PointLight(0xFFFFFF)
+    pointLight.position.x = 10
+    pointLight.position.y = 50
+    pointLight.position.z = 130
+    scene.add(pointLight)
 
     // CREATE ANIMALS
-    const boxGeometry = new THREE.BoxGeometry(1, 1, 0.00001);
-    var items = []
+    const boxGeometry = new THREE.BoxGeometry(1, 1, 0.00001)
 
-
-    function createAnimal(animal) {
-        // BEAR
-        var texture = new THREE.TextureLoader().load(animal.picture);
+    const createAnimal = animal => {
+        const texture = new THREE.TextureLoader().load(animal.picture)
 
         const box = new THREE.Mesh(boxGeometry, [null, null, null, null, new THREE.MeshLambertMaterial(
             {
@@ -264,13 +263,11 @@ function init() {
                 map: texture,
                 opacity: 0.9,
                 transparent: true
-            }), {
-                color: animal.color
-            }]
+            }), null]
         );
 
         box.position.set(animal.posX, animal.posY, animal.location);
-        box.scale.set(6, 6, 0.01);
+        box.scale.set(6, 6, 1);
 
         if (animal.model) {
             loader.load(animal.model, function (collada) {
@@ -281,59 +278,48 @@ function init() {
 
         box.visible = false
         scene.add(box);
-        items.push({ item: box })
+        finalItems.push({ item: box })
     }
 
     ANIMALS.map(animal => createAnimal(animal))
 
-
-    // INIT FINAL ITEMS ARRAY, ADD EXTRA INFO IF NEEDED
-    items.map((item, i) => {
-        if (i === 0) {
-            finalItems.push({ ...item})
-        } else {
-            finalItems.push({ ...item})
-        }
-    })
-
     finalItems[0].item.visible = true
     setText(ANIMALS[0].title, ANIMALS[0].desc)
 
-
     // ATTACH EVENT LISTENERS
     window.addEventListener('resize', onWindowResize, false);
-    window.addEventListener("wheel", function (e) {
+    window.addEventListener("wheel", e => {
         if (!ticking) {
             updatedScroll = e.deltaY;
         }
     })
-    container.addEventListener('touchstart', onTouchStart, false);
-    container.addEventListener('touchend', onTouchEnd, false);
+    container.addEventListener('touchstart', onTouchStart, false)
+    container.addEventListener('touchend', onTouchEnd, false)
 
     render()
 }
 
-function onTouchStart(e) {
+const onTouchStart = e => {
     if (!ticking) {
         touchStart = e.targetTouches[0].pageY
     }
 }
 
-function onTouchEnd(e) {
+const onTouchEnd = e => {
     if (!ticking) {
         touchEnd = e.changedTouches[0].pageY
         updatedTouch = touchEnd - touchStart
     }
 }
 
-function onWindowResize() {
+const onWindowResize = () => {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
     render();
 }
 
-function updateTouch () {
+const updateTouch = () => {
     if (!ticking) {
         ticking = true
         if (updatedTouch < 0) {
@@ -348,14 +334,14 @@ function updateTouch () {
             }
         }
         updatedTouch = 0
+        setTimeout(function () { ticking = false }, 500)
     }
-    setTimeout(function () { ticking = false }, 500)
 }
-function updateScroll(scroll_pos) {
+
+const updateScroll = () => {
     if (!ticking) {
         ticking = true
-        if (scroll_pos > 0) {
-            console.log('current:' + currentScroll)
+        if (updatedScroll > 0) {
             if (currentScroll !== ANIMALS.length - 1) {
                 console.log('scrolling down')
                 zoom(currentScroll + 1)
@@ -367,23 +353,21 @@ function updateScroll(scroll_pos) {
             }
         }
         lastScroll = updatedScroll
+        setTimeout(function () { ticking = false }, 1000)
     }
-
-    setTimeout(function () { ticking = false }, 1000)
 }
 
-function rotate(animal) {
-    animal.rotation.y += SPEED * 2;
+const rotate = animal => {
+    animal.rotation.y += SPEED
 }
 
-function render() {
-    renderer.render(scene, camera);
+const render = () => {
+    renderer.render(scene, camera)
 }
 
-
-function animate() {
-    TWEEN.update();
-    requestAnimationFrame(animate);
+const animate = () => {
+    TWEEN.update()
+    requestAnimationFrame(animate)
 
     // rotate 3d model if current item has it
     if (finalItems[currentScroll]) {
@@ -394,19 +378,17 @@ function animate() {
 
     // check if user did long touch
     if (updatedTouch > 150 || updatedTouch < -150 && !ticking) {
-        console.log('hi')
         updateTouch()
     }
 
     // check for scroll
     if (lastScroll !== updatedScroll && !ticking) {
-        updateScroll(updatedScroll)
+        updateScroll()
     }
 
-    renderer.render(scene, camera);
-    controls.update();
+    renderer.render(scene, camera)
+    controls.update()
 }
-
 
 init()
 animate()
